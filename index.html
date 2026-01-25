@@ -2,506 +2,570 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Покер</title>
+  <meta name="color-scheme" content="dark light" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
     :root{
-      --bg: #0b1220;
+      --bg0:#0b1020; --bg1:#0f1730;
+      --stroke: rgba(255,255,255,.14);
       --text: rgba(255,255,255,.92);
-      --muted: rgba(255,255,255,.65);
-      --accent: #6d7cff;
-      --accent2:#8ea1ff;
-      --shadow: 0 12px 30px rgba(0,0,0,.22);
+      --muted: rgba(255,255,255,.62);
+      --shadow: 0 18px 70px rgba(0,0,0,.45);
+      --radius: 18px;
+
+      --good: rgba(34,197,94,.95);
+      --bad: rgba(239,68,68,.95);
+
+      --barBg: rgba(255,255,255,.09);
+      --barFill: rgba(99,102,241,.92);
+
+      --tick: rgba(255,255,255,.20);
+      --tick2: rgba(0,0,0,.18);
     }
 
-    *{ box-sizing:border-box; }
-    html, body{
-      height:100%;
-      margin:0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-    }
-
+    *{box-sizing:border-box}
     body{
-      padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 20% 10%, rgba(99,102,241,.35), transparent 60%),
+        radial-gradient(900px 500px at 80% 30%, rgba(34,197,94,.22), transparent 60%),
+        radial-gradient(800px 600px at 50% 90%, rgba(236,72,153,.16), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      min-height:100vh;
+      padding: 18px 14px 34px;
       overflow-x:hidden;
     }
 
-    .wrap{ max-width: 520px; margin: 0 auto; }
-
-    .top{
-      border-radius: 22px;
-      padding: 16px;
-      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+    .wrap{max-width:980px;margin:0 auto}
+    .header{
+      padding:16px 16px 14px;
+      border:1px solid var(--stroke);
+      border-radius: calc(var(--radius) + 8px);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
       box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+    }
+    .topRow{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+    h1{margin:0; font-size:22px; letter-spacing:.2px}
+    .sub{margin-top:6px; color:var(--muted); font-size:13px; line-height:1.35}
+
+    /* iOS-стиль горизонтального скролла для кнопок */
+    .modesWrap{
+      margin-top:12px;
+      overflow-x:auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      position: relative;
+      padding: 2px 2px;
+    }
+    .modesWrap::-webkit-scrollbar{display:none;}
+    .modesWrap:before,
+    .modesWrap:after{
+      content:"";
+      position:absolute; top:0; bottom:0;
+      width:22px; pointer-events:none;
+    }
+    .modesWrap:before{
+      left:0;
+      background: linear-gradient(90deg, rgba(11,16,32,1), rgba(11,16,32,0));
+      opacity:.35;
+    }
+    .modesWrap:after{
+      right:0;
+      background: linear-gradient(270deg, rgba(11,16,32,1), rgba(11,16,32,0));
+      opacity:.35;
     }
 
-    .title{
+    .modes{
+      display:flex;
+      gap:10px;
+      flex-wrap:nowrap;
+      width:max-content;
+      padding: 2px 2px;
+      scroll-snap-type: x mandatory;
+    }
+
+    .btn{
+      scroll-snap-align: center;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding:10px 14px;
+      border-radius: 999px;
+      font-size:13px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+      box-shadow: 0 10px 25px rgba(0,0,0,.20);
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.22);}
+    .btn.active{
+      background: rgba(255,255,255,.14);
+      border-color: rgba(255,255,255,.26);
+      transform: translateY(-1px);
+    }
+
+    .list{margin-top:12px; display:flex; flex-direction:column; gap:10px;}
+
+    .item{
+      display:flex; align-items:center; gap:12px;
+      padding: 12px 14px;
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      box-shadow: 0 14px 45px rgba(0,0,0,.26);
+      backdrop-filter: blur(10px);
+      will-change: transform;
+    }
+
+    .left{min-width: 160px; display:flex; align-items:center; gap:10px;}
+    .avatar{
+      width:34px;height:34px;border-radius: 12px;
+      display:grid;place-items:center;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      font-weight:700;
+    }
+    .nameBlock{display:flex;flex-direction:column; gap:2px;}
+    .nameBlock b{font-size:15px}
+    .nameBlock span{font-size:12px;color:var(--muted)}
+
+    .right{
+      margin-left:auto;
+      width:min(520px, 100%);
       display:flex;
       align-items:center;
       gap:10px;
-      font-weight:800;
-      font-size: 22px;
-      margin-bottom: 10px;
-      letter-spacing: .2px;
     }
 
-    .subtitle{
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    .chips{
-      display:flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .chip{
-      user-select:none;
-      padding: 10px 12px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.10);
-      border: 1px solid rgba(255,255,255,.10);
-      color: rgba(255,255,255,.85);
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      transition: transform .06s ease, background .15s ease;
-    }
-    .chip:active{ transform: scale(.98); }
-    .chip.active{
-      background: rgba(109,124,255,.30);
-      border-color: rgba(109,124,255,.55);
-      color: #fff;
-    }
-
-    .hint{
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .total{
-      margin-top: 10px;
-      display:flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 12px;
-      padding: 12px 14px;
-      border-radius: 18px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.10);
-    }
-    .total .label{ color: var(--muted); font-size: 13px; font-weight:700; }
-    .total .sum{ font-size: 18px; font-weight: 900; }
-
-    .status{
-      margin-top: 12px;
-      padding: 12px 14px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.10);
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .status.error{
-      color: rgba(255,255,255,.92);
-      border-color: rgba(255,92,92,.55);
-      background: rgba(255,92,92,.12);
-    }
-
-    .list{
-      margin-top: 12px;
-      display:flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .row{
-      display:flex;
-      align-items:center;
-      gap: 12px;
-      padding: 14px;
-      border-radius: 20px;
-      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow: 0 10px 22px rgba(0,0,0,.14);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-    }
-
-    .avatar{
-      width: 40px;
-      height: 40px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.10);
-      border: 1px solid rgba(255,255,255,.10);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight: 900;
-      color: rgba(255,255,255,.92);
-      flex: 0 0 auto;
-    }
-
-    .info{ min-width: 0; flex: 1 1 auto; }
-
-    .name{
-      font-weight: 800;
-      font-size: 16px;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .small{
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .right{
-      flex: 0 0 auto;
-      display:flex;
-      flex-direction: column;
-      align-items:flex-end;
-      gap: 8px;
-      width: 130px;
+    .iconSlot{
+      width:22px;
+      text-align:center;
+      opacity:.95;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.25));
     }
 
     .value{
-      font-weight: 900;
-      font-size: 16px;
-      letter-spacing: .2px;
+      min-width: 120px;
+      text-align:right;
+      font-size:14px;
+      letter-spacing:.15px;
+      white-space:nowrap;
+      transition: opacity .18s ease, transform .18s ease;
     }
+    .value.good{color: var(--good)}
+    .value.bad{color: var(--bad)}
+    .value.changing{opacity:.55; transform: translateY(1px);}
 
     .bar{
-      width: 130px;
-      height: 12px;
+      position:relative;
+      height:12px;
+      flex: 1 1 auto;
+      background: var(--barBg);
+      border:1px solid rgba(255,255,255,.10);
       border-radius: 999px;
-      background: rgba(255,255,255,.10);
-      border: 1px solid rgba(255,255,255,.10);
-      overflow: hidden;
+      overflow:hidden;
     }
-    .bar > div{
-      height:100%;
-      width: 0%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      transition: width .35s ease;
+    .bar.ticked::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          transparent 0px,
+          transparent 26px,
+          var(--tick) 26px,
+          var(--tick) 27px
+        );
+      opacity:.7;
+      pointer-events:none;
+      mix-blend-mode: overlay;
+    }
+    .bar.ticked::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          transparent 0px,
+          transparent 26px,
+          var(--tick2) 26px,
+          var(--tick2) 27px
+        );
+      opacity:.25;
+      pointer-events:none;
     }
 
-    .suits{ opacity:.9; }
+    .fill{
+      position:absolute; inset:0 auto 0 0;
+      width:0%;
+      background: var(--barFill);
+      border-radius: 999px;
+      transition: width .55s cubic-bezier(.2,.8,.2,1), filter .25s ease;
+    }
+    .fill.good{background: var(--good)}
+    .fill.bad{background: var(--bad)}
+
+    @media (min-width: 760px){
+      h1{font-size:24px}
+      .left{min-width: 220px}
+      .value{min-width: 150px}
+    }
   </style>
 </head>
-
 <body>
   <div class="wrap">
-    <div class="top">
-      <div class="title"><span class="suits">♠️ ♥️ ♣️ ♦️</span> Покер</div>
-      <div class="subtitle">Статистика</div>
-
-      <div class="chips" id="chips"></div>
-
-      <div class="total">
-        <div class="label" id="metricLabel">—</div>
-        <div class="sum" id="metricTotal">—</div>
+    <div class="header">
+      <div class="topRow">
+        <div>
+          <h1>♠️❤️♣️♦️ Покер</h1>
+          <div class="sub">Статистика</div>
+        </div>
       </div>
 
-      <div class="hint" id="metricHint">—</div>
+      <div class="modesWrap" id="modesWrap">
+        <div class="modes" id="modes"></div>
+      </div>
     </div>
 
-    <div class="status" id="status">Загрузка...</div>
     <div class="list" id="list"></div>
   </div>
 
-  <script>
-    // ===== 1) ТВОЙ CSV URL =====
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQsHwAvfQEsaYPsASfRJZfI5r9YtbX6Je0B7lEdR6qv_yL39idPRYSHNWEJefOJdQ34FsnaM_EDJaWu/pub?gid=0&single=true&output=csv";
+<script>
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQsHwAvfQEsaYPsASfRJZfI5r9YtbX6Je0B7lEdR6qv_yL39idPRYSHNWEJefOJdQ34FsnaM_EDJaWu/pub?gid=0&single=true&output=csv";
+const CSV_DELIM = ",";
 
-    // ===== 2) Telegram theme =====
-    const tg = window.Telegram?.WebApp;
-    try { tg?.ready(); tg?.expand(); } catch(e){}
+const MODES = [
+  { id:"buyin",   label:"Байин",   type:"money" },
+  { id:"itm",     label:"ITM",     type:"money" },
+  { id:"champion",label:"Чемпион", type:"count", emoji:"🏆" },
+  { id:"loser",   label:"Лузер",   type:"count", emoji:"🍺" },
+  { id:"profit",  label:"Профит",  type:"money_profit" },
+];
 
-    function hexToRgba(hex, a){
-      const h = hex.replace("#","");
-      const r = parseInt(h.slice(0,2),16);
-      const g = parseInt(h.slice(2,4),16);
-      const b = parseInt(h.slice(4,6),16);
-      return `rgba(${r},${g},${b},${a})`;
+const $ = (id)=>document.getElementById(id);
+const listEl = $("list");
+const modesEl = $("modes");
+const modesWrap = $("modesWrap");
+
+let state = { mode: "profit", players: [] };
+
+function initials(name){
+  const parts = String(name||"").trim().split(/\s+/).filter(Boolean);
+  const a = parts[0]?.[0] || "•";
+  const b = parts.length > 1 ? parts[1]?.[0] : "";
+  return (a + b).toUpperCase();
+}
+function formatRUB(v){
+  const n = Number(v)||0;
+  return new Intl.NumberFormat("ru-RU", { style:"currency", currency:"RUB", maximumFractionDigits:0 }).format(n);
+}
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function parseCSV(text, delim = ","){
+  const rows = [];
+  let row = [], cur = "", inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    const next = text[i+1];
+    if(ch === '"'){
+      if(inQuotes && next === '"'){ cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+      continue;
     }
-
-    function applyTelegramTheme(){
-      const t = tg?.themeParams || {};
-      const bg = t.bg_color || "#0b1220";
-      const text = t.text_color || "#ffffff";
-      const hint = t.hint_color || "rgba(255,255,255,.65)";
-
-      document.documentElement.style.setProperty("--bg", bg);
-      document.documentElement.style.setProperty("--text", text);
-      document.documentElement.style.setProperty("--muted", hint);
-
-      // акцент если есть
-      if (t.button_color) {
-        document.documentElement.style.setProperty("--accent", t.button_color);
-        document.documentElement.style.setProperty("--accent2", t.button_color.startsWith("#")
-          ? hexToRgba(t.button_color, 1)
-          : t.button_color
-        );
-      }
+    if(!inQuotes && ch === delim){ row.push(cur); cur=""; continue; }
+    if(!inQuotes && (ch === "\n" || ch === "\r")){
+      if(ch === "\r" && next === "\n") i++;
+      row.push(cur); rows.push(row);
+      row=[]; cur=""; continue;
     }
-    applyTelegramTheme();
+    cur += ch;
+  }
+  row.push(cur); rows.push(row);
+  return rows.filter(r => r.some(c => String(c).trim() !== ""));
+}
+function toNumberLoose(x){
+  const s = String(x ?? "").replace(/\s+/g,"").replace(",",".");
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+function countEmoji(text, emoji){
+  const s = String(text ?? "");
+  if(!s) return 0;
+  const esc = emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return (s.match(new RegExp(esc, "g")) || []).length;
+}
+function parseCountCell(value, emoji){
+  const n = toNumberLoose(value);
+  if(n) return n;
+  return countEmoji(value, emoji);
+}
 
-    // ===== 3) Метрики (под твои колонки) =====
-    const METRICS = [
-      { key:"buyin_total",      title:"Байин",   label:"Сколько внесено за всё время (₽)", hint:"Сортировка: больше — выше", order:"desc", fmt:"money" },
-      { key:"itm_total",        title:"ITM",     label:"Выиграно (ITM) за всё время (₽)",  hint:"Сортировка: больше — выше", order:"desc", fmt:"money" },
-      { key:"champion_wins",    title:"Чемпион", label:"Победы за всё время (раз)",        hint:"Сортировка: больше — выше", order:"desc", fmt:"int" },
-      { key:"first_out",        title:"Лузер",   label:"Первый вылет за всё время (раз)",  hint:"Сортировка: больше — выше", order:"desc", fmt:"int" },
-      { key:"profit",           title:"Профит",  label:"Профит за всё время (₽)",          hint:"ITM − Байин. Сортировка: больше — выше", order:"desc", fmt:"money" },
-    ];
+function normalizePlayers(rows){
+  const header = rows[0].map(h=>String(h).trim());
+  const idx = (k)=>header.indexOf(k);
 
-    const chipsEl = document.getElementById("chips");
-    const listEl = document.getElementById("list");
-    const statusEl = document.getElementById("status");
-    const metricLabelEl = document.getElementById("metricLabel");
-    const metricTotalEl = document.getElementById("metricTotal");
-    const metricHintEl = document.getElementById("metricHint");
+  const iName = idx("name");
+  const iBuy  = idx("buyin_total");
+  const iItm  = idx("itm_total");
+  const iCh   = idx("champion_wins");
+  const iFo   = idx("first_out");
 
-    let rawRows = [];
-    let activeMetric = METRICS[0].key;
+  if(iName === -1) throw new Error("В CSV нет колонки 'name'. Проверь заголовки.");
 
-    function renderChips(){
-      chipsEl.innerHTML = "";
-      METRICS.forEach(m=>{
-        const btn = document.createElement("div");
-        btn.className = "chip" + (m.key===activeMetric ? " active" : "");
-        btn.textContent = m.title;
-        btn.onclick = ()=>{
-          activeMetric = m.key;
-          renderChips();
-          render();
-        };
-        chipsEl.appendChild(btn);
-      });
+  const out = [];
+  for(let r=1;r<rows.length;r++){
+    const line = rows[r];
+    const name = String(line[iName] ?? "").trim();
+    if(!name) continue;
+
+    const buy = iBuy >= 0 ? toNumberLoose(line[iBuy]) : 0;
+    const itm = iItm >= 0 ? toNumberLoose(line[iItm]) : 0;
+
+    const chRaw = iCh >= 0 ? line[iCh] : 0;
+    const foRaw = iFo >= 0 ? line[iFo] : 0;
+
+    const ch  = parseCountCell(chRaw, "🏆");
+    const fo  = parseCountCell(foRaw, "🍺");
+
+    out.push({
+      name,
+      buyin_total: buy,
+      itm_total: itm,
+      champion_wins: ch,
+      first_out: fo,
+      profit: itm - buy,
+      _key: name,
+    });
+  }
+  return out;
+}
+
+function modeValue(p, mode){
+  switch(mode){
+    case "buyin": return p.buyin_total;
+    case "itm": return p.itm_total;
+    case "champion": return p.champion_wins;
+    case "loser": return p.first_out;
+    case "profit": return p.profit;
+    default: return 0;
+  }
+}
+function displayValue(p, mode){
+  if(mode === "champion"){
+    const n = Math.floor(p.champion_wins || 0);
+    if(n <= 0) return "—";
+    if(n <= 10) return "🏆 ".repeat(n).trim();
+    return `🏆 × ${n}`;
+  }
+  if(mode === "loser"){
+    const n = Math.floor(p.first_out || 0);
+    if(n <= 0) return "—";
+    if(n <= 10) return "🍺 ".repeat(n).trim();
+    return `🍺 × ${n}`;
+  }
+  if(mode === "profit"){
+    const n = Number(p.profit)||0;
+    if(n === 0) return "—";
+    const abs = formatRUB(Math.abs(n)).replace("−","");
+    return (n > 0 ? "+" : "−") + abs;
+  }
+  const n = Number(modeValue(p, mode))||0;
+  if(n === 0) return "—";
+  return formatRUB(n);
+}
+function valueClassForMode(p, mode){
+  if(mode !== "profit") return "";
+  const n = Number(p.profit)||0;
+  if(n > 0) return "good";
+  if(n < 0) return "bad";
+  return "";
+}
+function fillClassForMode(p, mode){
+  if(mode !== "profit") return "";
+  const n = Number(p.profit)||0;
+  if(n > 0) return "good";
+  if(n < 0) return "bad";
+  return "";
+}
+function currentModeMeta(){
+  return MODES.find(x=>x.id===state.mode) || MODES[0];
+}
+
+function buildButtons(){
+  modesEl.innerHTML = "";
+  for(const m of MODES){
+    const b = document.createElement("button");
+    b.className = "btn" + (m.id === state.mode ? " active" : "");
+    b.textContent = m.label;
+    b.onclick = ()=> setMode(m.id);
+    modesEl.appendChild(b);
+  }
+  // красивое iOS-поведение: активную кнопку центрируем
+  requestAnimationFrame(() => {
+    const active = modesEl.querySelector(".btn.active");
+    if(active) active.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" });
+  });
+}
+
+function renderInitial(){
+  listEl.innerHTML = "";
+  for(const p of state.players){
+    const el = document.createElement("div");
+    el.className = "item";
+    el.dataset.key = p._key;
+    el.innerHTML = `
+      <div class="left">
+        <div class="avatar">${escapeHtml(initials(p.name))}</div>
+        <div class="nameBlock">
+          <b>${escapeHtml(p.name)}</b>
+          <span>в игре</span>
+        </div>
+      </div>
+      <div class="right">
+        <div class="iconSlot"></div>
+        <div class="value">—</div>
+        <div class="bar"><div class="fill"></div></div>
+      </div>
+    `;
+    listEl.appendChild(el);
+  }
+  updateRightSide(true);
+}
+
+function updateRightSide(skipAnim=false){
+  const mode = state.mode;
+  const meta = currentModeMeta();
+
+  // FLIP: позиции ДО
+  const items = Array.from(listEl.children);
+  const first = new Map();
+  for(const el of items) first.set(el.dataset.key, el.getBoundingClientRect().top);
+
+  // сортировка по убыванию
+  const sorted = [...state.players].sort((a,b)=> modeValue(b, mode) - modeValue(a, mode));
+  state.players = sorted;
+
+  // перестановка DOM
+  const byKeyEl = new Map(items.map(el => [el.dataset.key, el]));
+  for(const p of sorted){
+    const el = byKeyEl.get(p._key);
+    if(el) listEl.appendChild(el);
+  }
+
+  // максимум для шкалы
+  const maxVal = (() => {
+    if(mode === "profit") return Math.max(...sorted.map(p => Math.abs(modeValue(p, mode))), 0);
+    return Math.max(...sorted.map(p => modeValue(p, mode)), 0);
+  })();
+
+  for(const p of sorted){
+    const el = byKeyEl.get(p._key);
+    if(!el) continue;
+
+    const iconSlot = el.querySelector(".iconSlot");
+    const valEl = el.querySelector(".value");
+    const bar = el.querySelector(".bar");
+    const fill = el.querySelector(".fill");
+
+    const isCountMode = (mode === "champion" || mode === "loser");
+    bar.classList.toggle("ticked", isCountMode);
+    iconSlot.textContent = isCountMode ? (meta.emoji || "") : "";
+
+    const v = modeValue(p, mode);
+    const ratio = maxVal > 0 ? (mode === "profit" ? (Math.abs(v)/maxVal) : (v/maxVal)) : 0;
+    const w = Math.max(0, Math.min(100, ratio * 100));
+
+    // плавная смена цифр (легкий fade)
+    valEl.classList.add("changing");
+    const nextText = displayValue(p, mode);
+    const vClass = valueClassForMode(p, mode);
+    valEl.className = "value changing" + (vClass ? " " + vClass : "");
+    requestAnimationFrame(() => {
+      valEl.textContent = nextText;
+      valEl.classList.remove("changing");
+    });
+
+    const fClass = fillClassForMode(p, mode);
+    fill.className = "fill" + (fClass ? " " + fClass : "");
+
+    if(skipAnim){
+      fill.style.transition = "none";
+      fill.style.width = w.toFixed(2) + "%";
+      fill.offsetHeight;
+      fill.style.transition = "";
+    }else{
+      fill.style.width = w.toFixed(2) + "%";
     }
+  }
 
-    // ===== 4) CSV parser =====
-    function parseCSV(text){
-      const rows = [];
-      let row = [];
-      let cur = "";
-      let inQuotes = false;
+  // FLIP: анимация переезда
+  const last = new Map();
+  for(const el of Array.from(listEl.children)) last.set(el.dataset.key, el.getBoundingClientRect().top);
 
-      for (let i=0;i<text.length;i++){
-        const c = text[i];
-        const n = text[i+1];
-
-        if (c === '"' ){
-          if (inQuotes && n === '"') { cur += '"'; i++; }
-          else inQuotes = !inQuotes;
-        } else if (c === "," && !inQuotes){
-          row.push(cur); cur = "";
-        } else if ((c === "\n" || c === "\r") && !inQuotes){
-          if (c === "\r" && n === "\n") i++;
-          row.push(cur);
-          rows.push(row);
-          row = [];
-          cur = "";
-        } else {
-          cur += c;
-        }
-      }
-      if (cur.length || row.length){
-        row.push(cur);
-        rows.push(row);
-      }
-      return rows;
+  for(const el of Array.from(listEl.children)){
+    const key = el.dataset.key;
+    const dy = (first.get(key) ?? 0) - (last.get(key) ?? 0);
+    if(dy){
+      el.style.transition = "none";
+      el.style.transform = `translateY(${dy}px)`;
+      el.offsetHeight;
+      el.style.transition = "transform .55s cubic-bezier(.2,.8,.2,1)";
+      el.style.transform = "";
     }
+  }
+}
 
-    function norm(s){ return String(s ?? "").trim().toLowerCase(); }
+function setMode(mode){
+  if(state.mode === mode) return;
+  state.mode = mode;
+  buildButtons();
+  updateRightSide(false);
+}
 
-    function toNumber(v){
-      const s = String(v ?? "")
-        .replace(/\s/g,"")
-        .replace(/[₽руб.]/gi,"")
-        .replace(",",".");
-      const n = Number(s);
-      return Number.isFinite(n) ? n : NaN;
-    }
+async function load(){
+  const url = SHEET_CSV_URL + (SHEET_CSV_URL.includes("?") ? "&" : "?") + "v=" + Date.now();
+  const res = await fetch(url, { cache: "no-store" });
+  if(!res.ok) throw new Error("Не удалось загрузить CSV (" + res.status + ")");
+  const text = await res.text();
 
-    // first_out: если число — число, если не пусто (эмодзи/текст) — 1, иначе 0
-    function toCount(v){
-      const s = String(v ?? "").trim();
-      if (!s) return 0;
-      const n = toNumber(s);
-      if (Number.isFinite(n)) return n;
-      return 1;
-    }
+  let rows = parseCSV(text, CSV_DELIM);
+  if(rows.length && rows[0].length <= 1 && text.includes(";")){
+    rows = parseCSV(text, ";");
+  }
 
-    function idx(headers, name){
-      const i = headers.map(norm).indexOf(norm(name));
-      return i;
-    }
+  state.players = normalizePlayers(rows);
+  buildButtons();
+  renderInitial();
+}
 
-    function initials(name){
-      const p = String(name||"").trim().split(/\s+/).filter(Boolean);
-      if (!p.length) return "?";
-      if (p.length === 1) return p[0].slice(0,1).toUpperCase();
-      return (p[0].slice(0,1) + p[1].slice(0,1)).toUpperCase();
-    }
+function applyTelegramOptimizations(){
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if(!tg) return;
+  try{
+    tg.ready();
+    tg.expand();
+    // убираем “лишний воздух” сверху в мини-аппе
+    document.body.style.paddingTop = "12px";
+  }catch(e){}
+}
 
-    function money(n){
-      const sign = n < 0 ? "-" : "";
-      const abs = Math.abs(Math.round(n));
-      return sign + abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " ₽";
-    }
-
-    function formatValue(v, fmt){
-      if (fmt === "money") return money(v);
-      return String(Math.round(v));
-    }
-
-    // ===== 5) Load =====
-    async function load(){
-      try{
-        statusEl.className = "status";
-        statusEl.textContent = "Загрузка...";
-
-        const url = CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "t=" + Date.now();
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("CSV не загрузился: " + res.status);
-        const text = await res.text();
-
-        const table = parseCSV(text);
-        if (!table.length) throw new Error("CSV пустой");
-
-        const headers = table[0];
-        const body = table.slice(1).filter(r => r.some(x => String(x||"").trim() !== ""));
-
-        const cName = idx(headers, "name");
-        const cBuy  = idx(headers, "buyin_total");
-        const cItm  = idx(headers, "itm_total");
-        const cWin  = idx(headers, "champion_wins");
-        const cFO   = idx(headers, "first_out");
-
-        if (cName === -1) throw new Error("Не нашёл колонку name");
-        if (cBuy === -1)  throw new Error("Не нашёл колонку buyin_total");
-        if (cItm === -1)  throw new Error("Не нашёл колонку itm_total");
-        if (cWin === -1)  throw new Error("Не нашёл колонку champion_wins");
-        if (cFO === -1)   throw new Error("Не нашёл колонку first_out");
-
-        rawRows = body.map(r=>{
-          const buy = Number(toNumber(r[cBuy] ?? 0)) || 0;
-          const itm = Number(toNumber(r[cItm] ?? 0)) || 0;
-          const wins = Number(toNumber(r[cWin] ?? 0)) || 0;
-          const firstOut = toCount(r[cFO]);
-
-          return {
-            name: (r[cName] ?? "").trim() || "Без имени",
-            buyin_total: buy,
-            itm_total: itm,
-            champion_wins: wins,
-            first_out: firstOut,
-            profit: itm - buy
-          };
-        });
-
-        statusEl.textContent = "Готово";
-        renderChips();
-        render();
-      } catch(e){
-        statusEl.className = "status error";
-        statusEl.textContent = "Ошибка: " + e.message;
-      }
-    }
-
-    // ===== 6) Render =====
-    function render(){
-      const metric = METRICS.find(m => m.key === activeMetric) || METRICS[0];
-      metricLabelEl.textContent = metric.label;
-      metricHintEl.textContent = metric.hint;
-
-      const rows = [...rawRows].sort((a,b)=>{
-        const av = Number(a[metric.key] ?? 0);
-        const bv = Number(b[metric.key] ?? 0);
-        return metric.order === "asc" ? (av - bv) : (bv - av);
-      });
-
-      const values = rows.map(r => Number(r[metric.key] ?? 0));
-      const max = Math.max(1, ...values.map(v => Math.abs(v)));
-
-      const total = values.reduce((s,v)=>s+v,0);
-      metricTotalEl.textContent = formatValue(total, metric.fmt);
-
-      listEl.innerHTML = "";
-
-      rows.forEach(r=>{
-        const v = Number(r[metric.key] ?? 0);
-        const w = Math.round((Math.abs(v) / max) * 100);
-
-        const row = document.createElement("div");
-        row.className = "row";
-
-        const av = document.createElement("div");
-        av.className = "avatar";
-        av.textContent = initials(r.name);
-
-        const info = document.createElement("div");
-        info.className = "info";
-
-        const name = document.createElement("div");
-        name.className = "name";
-        name.textContent = r.name;
-
-        const small = document.createElement("div");
-        small.className = "small";
-        small.textContent = "в игре";
-
-        info.appendChild(name);
-        info.appendChild(small);
-
-        const right = document.createElement("div");
-        right.className = "right";
-
-        const value = document.createElement("div");
-        value.className = "value";
-        value.textContent = formatValue(v, metric.fmt);
-
-        const bar = document.createElement("div");
-        bar.className = "bar";
-
-        const fill = document.createElement("div");
-        fill.style.width = w + "%";
-        bar.appendChild(fill);
-
-        right.appendChild(value);
-        right.appendChild(bar);
-
-        row.appendChild(av);
-        row.appendChild(info);
-        row.appendChild(right);
-
-        listEl.appendChild(row);
-      });
-    }
-
-    renderChips();
-    load();
-  </script>
+applyTelegramOptimizations();
+load().catch(err=>{
+  listEl.innerHTML = `<div class="item"><div>Ошибка: ${escapeHtml(err?.message || err)}</div></div>`;
+});
+</script>
 </body>
 </html>
