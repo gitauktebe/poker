@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Покер</title>
+
+  <style>
+    :root{
+      --bg: #0b1220;
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.65);
+      --accent: #6d7cff;
+      --accent2:#8ea1ff;
+      --shadow: 0 12px 30px rgba(0,0,0,.22);
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{
+      height:100%;
+      margin:0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body{
+      padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+      overflow-x:hidden;
+    }
+
+    .wrap{ max-width: 520px; margin: 0 auto; }
+
+    .top{
+      border-radius: 22px;
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .title{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:800;
+      font-size: 22px;
+      margin-bottom: 10px;
+      letter-spacing: .2px;
+    }
+
+    .subtitle{
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .chip{
+      user-select:none;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.85);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform .06s ease, background .15s ease;
+    }
+    .chip:active{ transform: scale(.98); }
+    .chip.active{
+      background: rgba(109,124,255,.30);
+      border-color: rgba(109,124,255,.55);
+      color: #fff;
+    }
+
+    .hint{
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .total{
+      margin-top: 10px;
+      display:flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .total .label{ color: var(--muted); font-size: 13px; font-weight:700; }
+    .total .sum{ font-size: 18px; font-weight: 900; }
+
+    .status{
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status.error{
+      color: rgba(255,255,255,.92);
+      border-color: rgba(255,92,92,.55);
+      background: rgba(255,92,92,.12);
+    }
+
+    .list{
+      margin-top: 12px;
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .row{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 22px rgba(0,0,0,.14);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .avatar{
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      color: rgba(255,255,255,.92);
+      flex: 0 0 auto;
+    }
+
+    .info{ min-width: 0; flex: 1 1 auto; }
+
+    .name{
+      font-weight: 800;
+      font-size: 16px;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .small{
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .right{
+      flex: 0 0 auto;
+      display:flex;
+      flex-direction: column;
+      align-items:flex-end;
+      gap: 8px;
+      width: 130px;
+    }
+
+    .value{
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: .2px;
+    }
+
+    .bar{
+      width: 130px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow: hidden;
+    }
+    .bar > div{
+      height:100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .35s ease;
+    }
+
+    .suits{ opacity:.9; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="title"><span class="suits">♠️ ♥️ ♣️ ♦️</span> Покер</div>
+      <div class="subtitle">Статистика</div>
+
+      <div class="chips" id="chips"></div>
+
+      <div class="total">
+        <div class="label" id="metricLabel">—</div>
+        <div class="sum" id="metricTotal">—</div>
+      </div>
+
+      <div class="hint" id="metricHint">—</div>
+    </div>
+
+    <div class="status" id="status">Загрузка...</div>
+    <div class="list" id="list"></div>
+  </div>
+
+  <script>
+    // ===== 1) ТВОЙ CSV URL =====
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQsHwAvfQEsaYPsASfRJZfI5r9YtbX6Je0B7lEdR6qv_yL39idPRYSHNWEJefOJdQ34FsnaM_EDJaWu/pub?gid=0&single=true&output=csv";
+
+    // ===== 2) Telegram theme =====
+    const tg = window.Telegram?.WebApp;
+    try { tg?.ready(); tg?.expand(); } catch(e){}
+
+    function hexToRgba(hex, a){
+      const h = hex.replace("#","");
+      const r = parseInt(h.slice(0,2),16);
+      const g = parseInt(h.slice(2,4),16);
+      const b = parseInt(h.slice(4,6),16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+
+    function applyTelegramTheme(){
+      const t = tg?.themeParams || {};
+      const bg = t.bg_color || "#0b1220";
+      const text = t.text_color || "#ffffff";
+      const hint = t.hint_color || "rgba(255,255,255,.65)";
+
+      document.documentElement.style.setProperty("--bg", bg);
+      document.documentElement.style.setProperty("--text", text);
+      document.documentElement.style.setProperty("--muted", hint);
+
+      // акцент если есть
+      if (t.button_color) {
+        document.documentElement.style.setProperty("--accent", t.button_color);
+        document.documentElement.style.setProperty("--accent2", t.button_color.startsWith("#")
+          ? hexToRgba(t.button_color, 1)
+          : t.button_color
+        );
+      }
+    }
+    applyTelegramTheme();
+
+    // ===== 3) Метрики (под твои колонки) =====
+    const METRICS = [
+      { key:"buyin_total",      title:"Байин",   label:"Сколько внесено за всё время (₽)", hint:"Сортировка: больше — выше", order:"desc", fmt:"money" },
+      { key:"itm_total",        title:"ITM",     label:"Выиграно (ITM) за всё время (₽)",  hint:"Сортировка: больше — выше", order:"desc", fmt:"money" },
+      { key:"champion_wins",    title:"Чемпион", label:"Победы за всё время (раз)",        hint:"Сортировка: больше — выше", order:"desc", fmt:"int" },
+      { key:"first_out",        title:"Лузер",   label:"Первый вылет за всё время (раз)",  hint:"Сортировка: больше — выше", order:"desc", fmt:"int" },
+      { key:"profit",           title:"Профит",  label:"Профит за всё время (₽)",          hint:"ITM − Байин. Сортировка: больше — выше", order:"desc", fmt:"money" },
+    ];
+
+    const chipsEl = document.getElementById("chips");
+    const listEl = document.getElementById("list");
+    const statusEl = document.getElementById("status");
+    const metricLabelEl = document.getElementById("metricLabel");
+    const metricTotalEl = document.getElementById("metricTotal");
+    const metricHintEl = document.getElementById("metricHint");
+
+    let rawRows = [];
+    let activeMetric = METRICS[0].key;
+
+    function renderChips(){
+      chipsEl.innerHTML = "";
+      METRICS.forEach(m=>{
+        const btn = document.createElement("div");
+        btn.className = "chip" + (m.key===activeMetric ? " active" : "");
+        btn.textContent = m.title;
+        btn.onclick = ()=>{
+          activeMetric = m.key;
+          renderChips();
+          render();
+        };
+        chipsEl.appendChild(btn);
+      });
+    }
+
+    // ===== 4) CSV parser =====
+    function parseCSV(text){
+      const rows = [];
+      let row = [];
+      let cur = "";
+      let inQuotes = false;
+
+      for (let i=0;i<text.length;i++){
+        const c = text[i];
+        const n = text[i+1];
+
+        if (c === '"' ){
+          if (inQuotes && n === '"') { cur += '"'; i++; }
+          else inQuotes = !inQuotes;
+        } else if (c === "," && !inQuotes){
+          row.push(cur); cur = "";
+        } else if ((c === "\n" || c === "\r") && !inQuotes){
+          if (c === "\r" && n === "\n") i++;
+          row.push(cur);
+          rows.push(row);
+          row = [];
+          cur = "";
+        } else {
+          cur += c;
+        }
+      }
+      if (cur.length || row.length){
+        row.push(cur);
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function norm(s){ return String(s ?? "").trim().toLowerCase(); }
+
+    function toNumber(v){
+      const s = String(v ?? "")
+        .replace(/\s/g,"")
+        .replace(/[₽руб.]/gi,"")
+        .replace(",",".");
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    // first_out: если число — число, если не пусто (эмодзи/текст) — 1, иначе 0
+    function toCount(v){
+      const s = String(v ?? "").trim();
+      if (!s) return 0;
+      const n = toNumber(s);
+      if (Number.isFinite(n)) return n;
+      return 1;
+    }
+
+    function idx(headers, name){
+      const i = headers.map(norm).indexOf(norm(name));
+      return i;
+    }
+
+    function initials(name){
+      const p = String(name||"").trim().split(/\s+/).filter(Boolean);
+      if (!p.length) return "?";
+      if (p.length === 1) return p[0].slice(0,1).toUpperCase();
+      return (p[0].slice(0,1) + p[1].slice(0,1)).toUpperCase();
+    }
+
+    function money(n){
+      const sign = n < 0 ? "-" : "";
+      const abs = Math.abs(Math.round(n));
+      return sign + abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " ₽";
+    }
+
+    function formatValue(v, fmt){
+      if (fmt === "money") return money(v);
+      return String(Math.round(v));
+    }
+
+    // ===== 5) Load =====
+    async function load(){
+      try{
+        statusEl.className = "status";
+        statusEl.textContent = "Загрузка...";
+
+        const url = CSV_URL + (CSV_URL.includes("?") ? "&" : "?") + "t=" + Date.now();
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("CSV не загрузился: " + res.status);
+        const text = await res.text();
+
+        const table = parseCSV(text);
+        if (!table.length) throw new Error("CSV пустой");
+
+        const headers = table[0];
+        const body = table.slice(1).filter(r => r.some(x => String(x||"").trim() !== ""));
+
+        const cName = idx(headers, "name");
+        const cBuy  = idx(headers, "buyin_total");
+        const cItm  = idx(headers, "itm_total");
+        const cWin  = idx(headers, "champion_wins");
+        const cFO   = idx(headers, "first_out");
+
+        if (cName === -1) throw new Error("Не нашёл колонку name");
+        if (cBuy === -1)  throw new Error("Не нашёл колонку buyin_total");
+        if (cItm === -1)  throw new Error("Не нашёл колонку itm_total");
+        if (cWin === -1)  throw new Error("Не нашёл колонку champion_wins");
+        if (cFO === -1)   throw new Error("Не нашёл колонку first_out");
+
+        rawRows = body.map(r=>{
+          const buy = Number(toNumber(r[cBuy] ?? 0)) || 0;
+          const itm = Number(toNumber(r[cItm] ?? 0)) || 0;
+          const wins = Number(toNumber(r[cWin] ?? 0)) || 0;
+          const firstOut = toCount(r[cFO]);
+
+          return {
+            name: (r[cName] ?? "").trim() || "Без имени",
+            buyin_total: buy,
+            itm_total: itm,
+            champion_wins: wins,
+            first_out: firstOut,
+            profit: itm - buy
+          };
+        });
+
+        statusEl.textContent = "Готово";
+        renderChips();
+        render();
+      } catch(e){
+        statusEl.className = "status error";
+        statusEl.textContent = "Ошибка: " + e.message;
+      }
+    }
+
+    // ===== 6) Render =====
+    function render(){
+      const metric = METRICS.find(m => m.key === activeMetric) || METRICS[0];
+      metricLabelEl.textContent = metric.label;
+      metricHintEl.textContent = metric.hint;
+
+      const rows = [...rawRows].sort((a,b)=>{
+        const av = Number(a[metric.key] ?? 0);
+        const bv = Number(b[metric.key] ?? 0);
+        return metric.order === "asc" ? (av - bv) : (bv - av);
+      });
+
+      const values = rows.map(r => Number(r[metric.key] ?? 0));
+      const max = Math.max(1, ...values.map(v => Math.abs(v)));
+
+      const total = values.reduce((s,v)=>s+v,0);
+      metricTotalEl.textContent = formatValue(total, metric.fmt);
+
+      listEl.innerHTML = "";
+
+      rows.forEach(r=>{
+        const v = Number(r[metric.key] ?? 0);
+        const w = Math.round((Math.abs(v) / max) * 100);
+
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const av = document.createElement("div");
+        av.className = "avatar";
+        av.textContent = initials(r.name);
+
+        const info = document.createElement("div");
+        info.className = "info";
+
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = r.name;
+
+        const small = document.createElement("div");
+        small.className = "small";
+        small.textContent = "в игре";
+
+        info.appendChild(name);
+        info.appendChild(small);
+
+        const right = document.createElement("div");
+        right.className = "right";
+
+        const value = document.createElement("div");
+        value.className = "value";
+        value.textContent = formatValue(v, metric.fmt);
+
+        const bar = document.createElement("div");
+        bar.className = "bar";
+
+        const fill = document.createElement("div");
+        fill.style.width = w + "%";
+        bar.appendChild(fill);
+
+        right.appendChild(value);
+        right.appendChild(bar);
+
+        row.appendChild(av);
+        row.appendChild(info);
+        row.appendChild(right);
+
+        listEl.appendChild(row);
+      });
+    }
+
+    renderChips();
+    load();
+  </script>
+</body>
+</html>
