@@ -54,32 +54,20 @@
     h1{margin:0; font-size:22px; letter-spacing:.2px}
     .sub{margin-top:6px; color:var(--muted); font-size:13px; line-height:1.35}
 
-    /* iOS-стиль горизонтального скролла для кнопок */
+    /* iOS-style horizontal scroll + soft fade edges (без чёрных плашек) */
     .modesWrap{
       margin-top:12px;
       overflow-x:auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      position: relative;
-      padding: 2px 2px;
+      padding: 2px 10px; /* чтобы крайние кнопки не резались */
+      scroll-behavior:smooth;
+
+      /* мягкое “iOS-fade” */
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+      mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
     }
     .modesWrap::-webkit-scrollbar{display:none;}
-    .modesWrap:before,
-    .modesWrap:after{
-      content:"";
-      position:absolute; top:0; bottom:0;
-      width:22px; pointer-events:none;
-    }
-    .modesWrap:before{
-      left:0;
-      background: linear-gradient(90deg, rgba(11,16,32,1), rgba(11,16,32,0));
-      opacity:.35;
-    }
-    .modesWrap:after{
-      right:0;
-      background: linear-gradient(270deg, rgba(11,16,32,1), rgba(11,16,32,0));
-      opacity:.35;
-    }
 
     .modes{
       display:flex;
@@ -100,7 +88,7 @@
       font-size:13px;
       cursor:pointer;
       user-select:none;
-      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
       box-shadow: 0 10px 25px rgba(0,0,0,.20);
       white-space:nowrap;
     }
@@ -157,11 +145,9 @@
       font-size:14px;
       letter-spacing:.15px;
       white-space:nowrap;
-      transition: opacity .18s ease, transform .18s ease;
     }
     .value.good{color: var(--good)}
     .value.bad{color: var(--bad)}
-    .value.changing{opacity:.55; transform: translateY(1px);}
 
     .bar{
       position:relative;
@@ -207,7 +193,7 @@
       width:0%;
       background: var(--barFill);
       border-radius: 999px;
-      transition: width .55s cubic-bezier(.2,.8,.2,1), filter .25s ease;
+      transition: width .65s cubic-bezier(.2,.8,.2,1);
     }
     .fill.good{background: var(--good)}
     .fill.bad{background: var(--bad)}
@@ -254,7 +240,7 @@ const listEl = $("list");
 const modesEl = $("modes");
 const modesWrap = $("modesWrap");
 
-let state = { mode: "profit", players: [] };
+let state = { mode: "profit", players: [], justSwitched: false };
 
 function initials(name){
   const parts = String(name||"").trim().split(/\s+/).filter(Boolean);
@@ -363,29 +349,7 @@ function modeValue(p, mode){
     default: return 0;
   }
 }
-function displayValue(p, mode){
-  if(mode === "champion"){
-    const n = Math.floor(p.champion_wins || 0);
-    if(n <= 0) return "—";
-    if(n <= 10) return "🏆 ".repeat(n).trim();
-    return `🏆 × ${n}`;
-  }
-  if(mode === "loser"){
-    const n = Math.floor(p.first_out || 0);
-    if(n <= 0) return "—";
-    if(n <= 10) return "🍺 ".repeat(n).trim();
-    return `🍺 × ${n}`;
-  }
-  if(mode === "profit"){
-    const n = Number(p.profit)||0;
-    if(n === 0) return "—";
-    const abs = formatRUB(Math.abs(n)).replace("−","");
-    return (n > 0 ? "+" : "−") + abs;
-  }
-  const n = Number(modeValue(p, mode))||0;
-  if(n === 0) return "—";
-  return formatRUB(n);
-}
+
 function valueClassForMode(p, mode){
   if(mode !== "profit") return "";
   const n = Number(p.profit)||0;
@@ -413,11 +377,58 @@ function buildButtons(){
     b.onclick = ()=> setMode(m.id);
     modesEl.appendChild(b);
   }
-  // красивое iOS-поведение: активную кнопку центрируем
   requestAnimationFrame(() => {
     const active = modesEl.querySelector(".btn.active");
     if(active) active.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" });
   });
+}
+
+/* ---------- Анимация чисел (0 -> target) ---------- */
+const animMap = new WeakMap();
+function cancelAnim(el){
+  const id = animMap.get(el);
+  if(id) cancelAnimationFrame(id);
+  animMap.delete(el);
+}
+function animateNumber(el, from, to, durationMs, formatter){
+  cancelAnim(el);
+  const start = performance.now();
+  const dir = (to >= from) ? 1 : -1;
+  const ease = (t)=> 1 - Math.pow(1 - t, 3); // easeOutCubic
+
+  const step = (now)=>{
+    const t = Math.min(1, (now - start) / durationMs);
+    const k = ease(t);
+    const val = from + (to - from) * k;
+
+    el.textContent = formatter(val);
+
+    if(t < 1){
+      const rid = requestAnimationFrame(step);
+      animMap.set(el, rid);
+    }else{
+      el.textContent = formatter(to);
+      animMap.delete(el);
+    }
+  };
+  const rid = requestAnimationFrame(step);
+  animMap.set(el, rid);
+}
+
+/* Форматтеры под разные режимы */
+function fmtMoney(n){
+  const v = Math.round(Math.max(0, n));
+  return formatRUB(v);
+}
+function fmtProfit(n){
+  const v = Math.round(n);
+  if(v === 0) return formatRUB(0);
+  const sign = v > 0 ? "+" : "−";
+  return sign + formatRUB(Math.abs(v)).replace("−","");
+}
+function fmtCount(n){
+  const v = Math.round(Math.max(0, n));
+  return String(v);
 }
 
 function renderInitial(){
@@ -436,7 +447,7 @@ function renderInitial(){
       </div>
       <div class="right">
         <div class="iconSlot"></div>
-        <div class="value">—</div>
+        <div class="value">0</div>
         <div class="bar"><div class="fill"></div></div>
       </div>
     `;
@@ -471,6 +482,8 @@ function updateRightSide(skipAnim=false){
     return Math.max(...sorted.map(p => modeValue(p, mode)), 0);
   })();
 
+  const shouldAnimateFromZero = (!skipAnim && state.justSwitched);
+
   for(const p of sorted){
     const el = byKeyEl.get(p._key);
     if(!el) continue;
@@ -485,29 +498,48 @@ function updateRightSide(skipAnim=false){
     iconSlot.textContent = isCountMode ? (meta.emoji || "") : "";
 
     const v = modeValue(p, mode);
-    const ratio = maxVal > 0 ? (mode === "profit" ? (Math.abs(v)/maxVal) : (v/maxVal)) : 0;
-    const w = Math.max(0, Math.min(100, ratio * 100));
 
-    // плавная смена цифр (легкий fade)
-    valEl.classList.add("changing");
-    const nextText = displayValue(p, mode);
+    // значение (цвет профита)
     const vClass = valueClassForMode(p, mode);
-    valEl.className = "value changing" + (vClass ? " " + vClass : "");
-    requestAnimationFrame(() => {
-      valEl.textContent = nextText;
-      valEl.classList.remove("changing");
-    });
+    valEl.className = "value" + (vClass ? " " + vClass : "");
 
+    // fill (цвет профита)
     const fClass = fillClassForMode(p, mode);
     fill.className = "fill" + (fClass ? " " + fClass : "");
 
+    // ширина шкалы
+    const ratio = maxVal > 0 ? (mode === "profit" ? (Math.abs(v)/maxVal) : (v/maxVal)) : 0;
+    const targetW = Math.max(0, Math.min(100, ratio * 100));
+
     if(skipAnim){
       fill.style.transition = "none";
-      fill.style.width = w.toFixed(2) + "%";
+      fill.style.width = targetW.toFixed(2) + "%";
       fill.offsetHeight;
       fill.style.transition = "";
     }else{
-      fill.style.width = w.toFixed(2) + "%";
+      if(shouldAnimateFromZero){
+        fill.style.width = "0%";
+        requestAnimationFrame(()=> fill.style.width = targetW.toFixed(2) + "%");
+      }else{
+        fill.style.width = targetW.toFixed(2) + "%";
+      }
+    }
+
+    // анимация чисел
+    if(skipAnim){
+      // сразу
+      if(mode === "buyin" || mode === "itm") valEl.textContent = fmtMoney(v);
+      else if(mode === "profit") valEl.textContent = fmtProfit(v);
+      else valEl.textContent = fmtCount(v);
+    }else{
+      const dur = 520;
+      if(mode === "buyin" || mode === "itm"){
+        animateNumber(valEl, shouldAnimateFromZero ? 0 : toNumberLoose(valEl.textContent), v, dur, fmtMoney);
+      }else if(mode === "profit"){
+        animateNumber(valEl, shouldAnimateFromZero ? 0 : 0, v, dur, fmtProfit);
+      }else{
+        animateNumber(valEl, shouldAnimateFromZero ? 0 : 0, v, dur, fmtCount);
+      }
     }
   }
 
@@ -526,11 +558,14 @@ function updateRightSide(skipAnim=false){
       el.style.transform = "";
     }
   }
+
+  state.justSwitched = false;
 }
 
 function setMode(mode){
   if(state.mode === mode) return;
   state.mode = mode;
+  state.justSwitched = true;
   buildButtons();
   updateRightSide(false);
 }
@@ -557,7 +592,6 @@ function applyTelegramOptimizations(){
   try{
     tg.ready();
     tg.expand();
-    // убираем “лишний воздух” сверху в мини-аппе
     document.body.style.paddingTop = "12px";
   }catch(e){}
 }
