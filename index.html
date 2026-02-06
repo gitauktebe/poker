@@ -40,71 +40,124 @@
       padding: 18px 14px 34px;
       overflow-x:hidden;
     }
-
-    .wrap{max-width:980px;margin:0 auto}
-    .header{
-      padding:16px 16px 14px;
-      border:1px solid var(--stroke);
-      border-radius: calc(var(--radius) + 8px);
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
+    body::before{
+      content:"";
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      height: calc(var(--header-height, 0px) + max(env(safe-area-inset-top, 0px), var(--tg-safe-top, 0px)) + 12px);
+      background: linear-gradient(180deg, rgba(15,23,48,1), rgba(15,23,48,.96));
+      z-index: 40;
+      pointer-events: none;
     }
-    .topRow{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;}
-    h1{margin:0; font-size:22px; letter-spacing:.2px}
-    .sub{margin-top:6px; color:var(--muted); font-size:13px; line-height:1.35}
+
+    .wrap{
+      max-width:980px;
+      margin:0 auto;
+      padding-top: calc(var(--header-height, 0px) + max(env(safe-area-inset-top, 0px), var(--tg-safe-top, 0px)) + 12px);
+    }
+
+    /* Верхняя панель только с кнопками */
+    .header{
+      width: 100%;
+    }
+
+    /* Закрепляем верхнее меню */
+    .headerSticky{
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      padding-top: max(env(safe-area-inset-top, 0px), var(--tg-safe-top, 0px));
+      /* чуть плотнее фон при прокрутке (iOS-like) */
+      background: linear-gradient(180deg, rgba(15,23,48,1), rgba(15,23,48,.98));
+      backdrop-filter: blur(14px);
+      overflow: visible;
+    }
+    .headerSticky::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(180deg, rgba(15,23,48,1), rgba(15,23,48,.96));
+      z-index: -1;
+    }
+    .headerSticky::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:-20px;
+      height:42px;
+      background: linear-gradient(180deg, rgba(15,23,48,.96), rgba(15,23,48,0));
+      pointer-events:none;
+    }
+
+    .headerInner{
+      position: relative;
+      z-index: 1;
+      max-width:980px;
+      margin:0 auto;
+      padding: 10px 14px 8px;
+    }
 
     /* iOS-style horizontal scroll + soft fade edges (без чёрных плашек) */
     .modesWrap{
-      margin-top:12px;
       overflow-x:auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      padding: 2px 10px; /* чтобы крайние кнопки не резались */
+      padding: 4px 12px; /* чтобы крайние кнопки не резались */
       scroll-behavior:smooth;
-
-      /* мягкое “iOS-fade” */
-      -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
-      mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
     }
     .modesWrap::-webkit-scrollbar{display:none;}
 
     .modes{
       display:flex;
       gap:10px;
-      flex-wrap:nowrap;
-      width:max-content;
+      flex-wrap:wrap;
+      width:100%;
       padding: 2px 2px;
       scroll-snap-type: x mandatory;
     }
 
     .btn{
       scroll-snap-align: center;
-      border:1px solid var(--stroke);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      padding:10px 14px;
+      border:1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.16);
+      color: #fff;
+      padding:10px 16px;
       border-radius: 999px;
       font-size:13px;
       cursor:pointer;
       user-select:none;
       transition: transform .18s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
-      box-shadow: 0 10px 25px rgba(0,0,0,.20);
+      box-shadow: 0 12px 28px rgba(0,0,0,.28);
+      text-shadow: 0 1px 4px rgba(0,0,0,.35);
+      flex: 1 1 120px;
+      min-width: 0;
+      text-align:center;
       white-space:nowrap;
     }
     .btn:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.22);}
     .btn.active{
-      background: rgba(255,255,255,.14);
-      border-color: rgba(255,255,255,.26);
+      background: linear-gradient(135deg, rgba(99,102,241,.25), rgba(255,255,255,.22));
+      border-color: rgba(255,255,255,.35);
       transform: translateY(-1px);
     }
 
-    .list{margin-top:12px; display:flex; flex-direction:column; gap:10px;}
+    /* Список уходит под верхнее меню */
+    .list{
+      padding-top: 10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
 
     .item{
       display:flex; align-items:center; gap:12px;
       padding: 12px 14px;
-      border:1px solid var(--stroke);
+      border:1px solid rgba(255,255,255,0);
       border-radius: var(--radius);
       background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
       box-shadow: 0 14px 45px rgba(0,0,0,.26);
@@ -199,27 +252,30 @@
     .fill.bad{background: var(--bad)}
 
     @media (min-width: 760px){
-      h1{font-size:24px}
       .left{min-width: 220px}
       .value{min-width: 150px}
+    }
+
+    @media (max-width: 520px){
+      body{padding: 14px 10px 30px;}
+      .btn{font-size:12px; padding:9px 12px;}
+      .item{padding: 10px 12px;}
+      .left{min-width: 140px;}
+      .value{min-width: 100px; font-size:13px;}
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header">
-      <div class="topRow">
-        <div>
-          <h1>♠️❤️♣️♦️ Покер</h1>
-          <div class="sub">Статистика</div>
-        </div>
-      </div>
-
+  <!-- Только кнопки + закрепление сверху -->
+  <div class="header headerSticky">
+    <div class="headerInner">
       <div class="modesWrap" id="modesWrap">
         <div class="modes" id="modes"></div>
       </div>
     </div>
+  </div>
 
+  <div class="wrap">
     <div class="list" id="list"></div>
   </div>
 
@@ -230,15 +286,16 @@ const CSV_DELIM = ",";
 const MODES = [
   { id:"buyin",   label:"Байин",   type:"money" },
   { id:"itm",     label:"ITM",     type:"money" },
+  { id:"profit",  label:"Профит",  type:"money_profit" },
   { id:"champion",label:"Чемпион", type:"count", emoji:"🏆" },
   { id:"loser",   label:"Лузер",   type:"count", emoji:"🍺" },
-  { id:"profit",  label:"Профит",  type:"money_profit" },
 ];
 
 const $ = (id)=>document.getElementById(id);
 const listEl = $("list");
 const modesEl = $("modes");
 const modesWrap = $("modesWrap");
+const headerEl = document.querySelector(".headerSticky");
 
 let state = { mode: "profit", players: [], justSwitched: false };
 
@@ -393,7 +450,6 @@ function cancelAnim(el){
 function animateNumber(el, from, to, durationMs, formatter){
   cancelAnim(el);
   const start = performance.now();
-  const dir = (to >= from) ? 1 : -1;
   const ease = (t)=> 1 - Math.pow(1 - t, 3); // easeOutCubic
 
   const step = (now)=>{
@@ -442,7 +498,6 @@ function renderInitial(){
         <div class="avatar">${escapeHtml(initials(p.name))}</div>
         <div class="nameBlock">
           <b>${escapeHtml(p.name)}</b>
-          <span>в игре</span>
         </div>
       </div>
       <div class="right">
@@ -527,7 +582,6 @@ function updateRightSide(skipAnim=false){
 
     // анимация чисел
     if(skipAnim){
-      // сразу
       if(mode === "buyin" || mode === "itm") valEl.textContent = fmtMoney(v);
       else if(mode === "profit") valEl.textContent = fmtProfit(v);
       else valEl.textContent = fmtCount(v);
@@ -592,11 +646,40 @@ function applyTelegramOptimizations(){
   try{
     tg.ready();
     tg.expand();
+    document.documentElement.style.setProperty("--tg-viewport-height", `${tg.viewportHeight || 0}px`);
+    document.documentElement.style.setProperty("--tg-viewport-stable-height", `${tg.viewportStableHeight || 0}px`);
+    if(tg.safeAreaInset){
+      const inset = tg.safeAreaInset;
+      document.documentElement.style.setProperty("--tg-safe-top", `${inset.top || 0}px`);
+      document.documentElement.style.setProperty("--tg-safe-bottom", `${inset.bottom || 0}px`);
+    }
     document.body.style.paddingTop = "12px";
+    tg.onEvent("viewportChanged", () => {
+      document.documentElement.style.setProperty("--tg-viewport-height", `${tg.viewportHeight || 0}px`);
+      document.documentElement.style.setProperty("--tg-viewport-stable-height", `${tg.viewportStableHeight || 0}px`);
+      if(tg.safeAreaInset){
+        const inset = tg.safeAreaInset;
+        document.documentElement.style.setProperty("--tg-safe-top", `${inset.top || 0}px`);
+        document.documentElement.style.setProperty("--tg-safe-bottom", `${inset.bottom || 0}px`);
+      }
+      updateHeaderHeight();
+    });
   }catch(e){}
 }
 
+function updateHeaderHeight(){
+  if(!headerEl) return;
+  const rect = headerEl.getBoundingClientRect();
+  document.documentElement.style.setProperty("--header-height", `${rect.height}px`);
+}
+
+const headerResizeObserver = headerEl ? new ResizeObserver(updateHeaderHeight) : null;
+if(headerResizeObserver && headerEl){
+  headerResizeObserver.observe(headerEl);
+}
+
 applyTelegramOptimizations();
+updateHeaderHeight();
 load().catch(err=>{
   listEl.innerHTML = `<div class="item"><div>Ошибка: ${escapeHtml(err?.message || err)}</div></div>`;
 });
